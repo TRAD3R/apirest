@@ -1,0 +1,43 @@
+###User list
+GET http://localhost:8080/users?from=2024-06-01&to=2024-07-01&sort=asc
+
+###User create
+POST http://localhost:8080/user
+Content-Type: application/json
+
+{
+  "name": "user1",
+  "phonenumber": "+79999999999"
+}
+
+### user Update
+PATCH http://localhost:8080/user/1
+Content-Type: application/json
+
+{
+  "name": "new user name"
+}
+###User Delete
+DELETE http://localhost:8080/user/2
+
+###Post list
+GET http://localhost:8080/posts
+
+###Post add
+POST localhost:8080/post
+Content-Type: application/json
+
+{
+  "subject": "post1",
+  "body": "post description",
+  "author": 1
+}
+### post Update
+PATCH http://localhost:8080/post/1
+Content-Type: application/json
+
+{
+  "subject": "new post"
+}
+###Post Delete
+DELETE http://localhost:8080/post/2
