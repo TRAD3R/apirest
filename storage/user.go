@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"github.com/trad3r/hskills/apirest/cmd/custom_errors"
 	"github.com/trad3r/hskills/apirest/models"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ func NewUserStorage() *UserStorage {
 }
 
 // Add adds new user to user map
-func (s *UserStorage) Add(ctx context.Context, user models.User) error {
+func (s *UserStorage) Add(ctx context.Context, user models.User) (*models.User, error) {
 	// ctx не используется
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -51,7 +52,7 @@ func (s *UserStorage) Add(ctx context.Context, user models.User) error {
 	user.CreatedAt = time.Now()
 	s.users[id] = &user
 
-	return nil
+	return &user, nil
 }
 
 // GetList returns user list
@@ -136,10 +137,11 @@ func (s *UserStorage) Delete(_ context.Context, id int) error {
 	return nil
 }
 
+// FindById returns user by ID
 func (s *UserStorage) FindById(_ context.Context, id int) (*models.User, error) {
 	user, ok := s.users[id]
 	if !ok {
-		return nil, errors.New("user does not exist")
+		return nil, custom_errors.ErrUserNotFound
 	}
 
 	return user, nil

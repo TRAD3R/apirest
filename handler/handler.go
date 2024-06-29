@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/trad3r/hskills/apirest/router"
 	"net/http"
+	"net/http/pprof"
 )
 
 type Handler struct {
@@ -32,6 +33,12 @@ func (h *Handler) Handlers() http.Handler {
 	r.HandleFunc("PATCH /post/{id}", h.updatePost())
 
 	r.HandleFunc("DELETE /post/{id}", h.deletePost())
+
+	r.HandleFunc("/debug/pprof/", pprof.Index)
+	r.HandleFunc("debug/pprof/cmdline", pprof.Cmdline)
+	r.HandleFunc("debug/pprof/profile", pprof.Profile)
+	r.HandleFunc("debug/pprof/symbol", pprof.Symbol)
+	r.HandleFunc("debug/pprof/trace", pprof.Trace)
 
 	return r
 }

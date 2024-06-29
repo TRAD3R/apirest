@@ -73,7 +73,7 @@ func (r *Router) PostAdd(req *http.Request) error {
 
 	post.Author = author.ID
 
-	if err := r.postStorage.Add(ctx, post); err != nil {
+	if err := r.postStorage.Add(ctx, &post); err != nil {
 		log.Printf("failed to add post: %v", err)
 		return errors.New("failed to add post")
 	}

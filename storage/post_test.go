@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"github.com/go-faker/faker/v4"
+	"github.com/trad3r/hskills/apirest/cmd/custom_errors"
 	"github.com/trad3r/hskills/apirest/models"
 	"math/rand"
 	"testing"
@@ -12,17 +14,27 @@ import (
 )
 
 var (
-	sp *PostStorage
 	su *UserStorage
 )
 
 func TestMain(m *testing.M) {
-	sp = NewPostStorage()
 	su = NewUserStorage()
+
+	for range 10 {
+		u := models.User{
+			Name:        faker.Name(),
+			Phonenumber: faker.Phonenumber(),
+		}
+
+		_, _ = su.Add(context.Background(), u)
+	}
 }
 
 func TestPostAdd(t *testing.T) {
-	userLastId := sp.getNextPostID() - 1
+	t.Parallel()
+
+	sp := NewPostStorage()
+	userLastId := su.getNextUserID() - 1
 	for range 10 {
 		t.Run("add new post", func(t *testing.T) {
 			post := models.Post{
@@ -31,8 +43,9 @@ func TestPostAdd(t *testing.T) {
 				Author:  rand.Intn(userLastId),
 			}
 
-			err := sp.Add(context.Background(), post)
+			err := sp.Add(context.Background(), &post)
 			require.NoError(t, err)
+			assert.Greater(t, post.ID, 0)
 		})
 	}
 
@@ -40,6 +53,7 @@ func TestPostAdd(t *testing.T) {
 }
 
 func BenchmarkPostAdd(b *testing.B) {
+	sp := NewPostStorage()
 	userLastId := su.getNextUserID() - 1
 	for i := 0; i < b.N; i++ {
 		b.Run("add new post", func(b *testing.B) {
@@ -49,13 +63,16 @@ func BenchmarkPostAdd(b *testing.B) {
 				Author:  rand.Intn(userLastId),
 			}
 
-			err := sp.Add(context.Background(), p)
+			err := sp.Add(context.Background(), &p)
 			assert.NoError(b, err)
 		})
 	}
 }
 
 func TestPostUpdate(t *testing.T) {
+	t.Parallel()
+
+	sp := NewPostStorage()
 	t.Run("update post subject and body", func(t *testing.T) {
 		t.Parallel()
 		postID := 1
@@ -77,6 +94,9 @@ func TestPostUpdate(t *testing.T) {
 }
 
 func TestPostGetList(t *testing.T) {
+	t.Parallel()
+
+	sp := NewPostStorage()
 	testCases := []struct {
 		name          string
 		users         []int
@@ -119,12 +139,25 @@ func TestPostGetList(t *testing.T) {
 }
 
 func TestPostDelete(t *testing.T) {
-	//t.Parallel()
-	//userID := 1
-	//user := sp.posts[userID]
-	//require.NotNil(t, user)
-	//
-	//err := sp.Delete(context.Background(), userID)
-	//require.NoError(t, err)
-	//require.Equal(t, 9, len(s.users))
+	t.Parallel()
+	sp := NewPostStorage()
+
+	newPost := models.Post{
+		Subject: faker.Sentence(),
+		Body:    faker.Paragraph(),
+		Author:  1,
+	}
+
+	err := sp.Add(context.Background(), &newPost)
+	require.NoError(t, err)
+
+	post, err := sp.FindById(context.Background(), newPost.ID)
+	require.NoError(t, err)
+	require.Equal(t, newPost, post)
+
+	err = sp.Delete(context.Background(), newPost.ID)
+	require.NoError(t, err)
+
+	post, err = sp.FindById(context.Background(), newPost.ID)
+	require.ErrorIs(t, err, custom_errors.ErrPostNotFound)
 }

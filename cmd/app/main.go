@@ -8,7 +8,6 @@ import (
 	"github.com/trad3r/hskills/apirest/storage"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"

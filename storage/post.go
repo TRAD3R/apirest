@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"github.com/trad3r/hskills/apirest/cmd/custom_errors"
 	"github.com/trad3r/hskills/apirest/models"
 	"strings"
 	"sync"
@@ -42,7 +43,7 @@ func NewPostStorage() *PostStorage {
 }
 
 // Add adds new post to post map
-func (s *PostStorage) Add(ctx context.Context, post models.Post) error {
+func (s *PostStorage) Add(ctx context.Context, post *models.Post) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -51,7 +52,7 @@ func (s *PostStorage) Add(ctx context.Context, post models.Post) error {
 	id := s.getNextPostID()
 	post.ID = id
 	post.CreatedAt = time.Now()
-	s.posts[id] = &post
+	s.posts[id] = post
 
 	return nil
 }
@@ -154,4 +155,14 @@ func (s *PostStorage) sort(posts []models.Post, filter PostFilter) []models.Post
 	}
 
 	return posts[filter.Offset : filter.Offset+filter.Limit]
+}
+
+// FindById returns post by ID
+func (s *PostStorage) FindById(_ context.Context, id int) (*models.Post, error) {
+	post, ok := s.posts[id]
+	if !ok {
+		return nil, custom_errors.ErrUserNotFound
+	}
+
+	return post, nil
 }

@@ -1,41 +1,17 @@
-package storage_test
+package storage
 
 // Blackbox testing
 
 import (
 	"context"
+	"github.com/go-faker/faker/v4"
+	"github.com/trad3r/hskills/apirest/cmd/custom_errors"
 	"github.com/trad3r/hskills/apirest/models"
-	"github.com/trad3r/hskills/apirest/storage"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
-
-var su *storage.UserStorage
-
-func init() {
-	su = storage.NewUserStorage()
-}
-
-// Пример интеграционного теста
-func TestUserAddAndGetAfter(t *testing.T) {
-	t.Parallel()
-
-	for range 10 {
-		t.Run("add new user", func(t *testing.T) {
-			t.Parallel()
-
-			u := models.User{
-				Name:        faker.Name(),
-				Phonenumber: faker.Phonenumber(),
-			}
-
-			err := su.Add(context.Background(), u)
-			require.NoError(t, err)
-		})
-	}
-}
 
 func TestUserAdd(t *testing.T) {
 	t.Parallel()
@@ -47,20 +23,23 @@ func TestUserAdd(t *testing.T) {
 			t.Parallel()
 
 			// Создавать новый сторадж под каждый тестовый случай
-			su = storage.NewUserStorage()
+			su := NewUserStorage()
 
 			u := models.User{
 				Name:        faker.Name(),
 				Phonenumber: faker.Phonenumber(),
 			}
 
-			err := su.Add(context.Background(), u)
+			user, err := su.Add(context.Background(), u)
 			require.NoError(t, err)
+			require.NotNil(t, user)
 		})
 	}
 }
 
 func BenchmarkUserAdd(b *testing.B) {
+	su := NewUserStorage()
+
 	for i := 0; i < b.N; i++ {
 		b.Run("add new user", func(b *testing.B) {
 			u := models.User{
@@ -68,84 +47,111 @@ func BenchmarkUserAdd(b *testing.B) {
 				Phonenumber: faker.Phonenumber(),
 			}
 
-			su.Add(context.Background(), u)
+			user, err := su.Add(context.Background(), u)
+			require.NoError(b, err)
+			require.NotNil(b, user)
 		})
 	}
 }
 
-func TestUserUpdate(t *testing.T) {
+func TestUserUpdateName(t *testing.T) {
+	su := NewUserStorage()
+
 	t.Run("update user name", func(t *testing.T) {
 		t.Parallel()
-		userID := 1
-		user := su.users[userID]
-		require.NotNil(t, user)
-
-		// Лучше так
-		userToAdd := models.User{}
-		su.Add()
-
-		su.Update()
-
-		expectedUser := models.User{}
-
-		su.GetList()
-
-		req := storage.UserUpdateRequest{
-			Name:        faker.Name(),
-			Phonenumber: "",
-		}
-
-		err := su.Update(context.Background(), userID, req)
-		require.NoError(t, err)
-
-		newUser := su.users[userID]
-		require.Equal(t, userToAdd, expectedUser) // Лучше так
-
-		require.Equal(t, req.Name, newUser.Name)
-		require.Equal(t, user.Phonenumber, newUser.Phonenumber)
-
-	})
-
-	t.Run("update user phonenumber", func(t *testing.T) {
-		t.Parallel()
-		userID := 2
-		user := su.users[userID]
-		require.NotNil(t, user)
-
-		req := UserUpdateRequest{
-			Name:        "",
-			Phonenumber: faker.Phonenumber(),
-		}
-
-		err := su.Update(context.Background(), userID, req)
-		require.NoError(t, err)
-
-		newUser := su.users[userID]
-		require.Equal(t, req.Phonenumber, newUser.Phonenumber)
-		require.Equal(t, user.Name, newUser.Name)
-	})
-
-	t.Run("update user name and phonenumber", func(t *testing.T) {
-		t.Parallel()
-		userID := 3
-		user := su.users[userID]
-		require.NotNil(t, user)
-
-		req := UserUpdateRequest{
+		userToAdd := models.User{
 			Name:        faker.Name(),
 			Phonenumber: faker.Phonenumber(),
 		}
 
-		err := su.Update(context.Background(), userID, req)
+		addedUser, err := su.Add(context.Background(), userToAdd)
+		require.NoError(t, err)
+		require.Greater(t, addedUser.ID, 0)
+
+		addedUser.Name = faker.Name()
+		updateNameReq := UserUpdateRequest{
+			Name: addedUser.Name,
+		}
+
+		err = su.Update(context.Background(), addedUser.ID, updateNameReq)
 		require.NoError(t, err)
 
-		newUser := su.users[userID]
-		require.Equal(t, req.Phonenumber, newUser.Phonenumber)
-		require.Equal(t, req.Name, newUser.Name)
+		foundUser, err := su.FindById(context.Background(), addedUser.ID)
+		require.NoError(t, err)
+		require.Equal(t, addedUser, foundUser)
+	})
+}
+
+func TestUserUpdatePhone(t *testing.T) {
+	su := NewUserStorage()
+
+	t.Run("update user phone", func(t *testing.T) {
+		t.Parallel()
+		userToAdd := models.User{
+			Name:        faker.Name(),
+			Phonenumber: faker.Phonenumber(),
+		}
+
+		addedUser, err := su.Add(context.Background(), userToAdd)
+		require.NoError(t, err)
+		require.Greater(t, addedUser.ID, 0)
+
+		addedUser.Phonenumber = faker.Phonenumber()
+		updatePhoneReq := UserUpdateRequest{
+			Phonenumber: addedUser.Phonenumber,
+		}
+
+		err = su.Update(context.Background(), addedUser.ID, updatePhoneReq)
+		require.NoError(t, err)
+
+		foundUser, err := su.FindById(context.Background(), addedUser.ID)
+		require.NoError(t, err)
+		require.Equal(t, addedUser, foundUser)
+	})
+}
+
+func TestUserUpdateNameAndPhone(t *testing.T) {
+	su := NewUserStorage()
+
+	t.Run("update user phone", func(t *testing.T) {
+		t.Parallel()
+		userToAdd := models.User{
+			Name:        faker.Name(),
+			Phonenumber: faker.Phonenumber(),
+		}
+
+		addedUser, err := su.Add(context.Background(), userToAdd)
+		require.NoError(t, err)
+		require.Greater(t, addedUser.ID, 0)
+
+		addedUser.Name = faker.Name()
+		addedUser.Phonenumber = faker.Phonenumber()
+		updatePhoneReq := UserUpdateRequest{
+			Name:        addedUser.Name,
+			Phonenumber: addedUser.Phonenumber,
+		}
+
+		err = su.Update(context.Background(), addedUser.ID, updatePhoneReq)
+		require.NoError(t, err)
+
+		foundUser, err := su.FindById(context.Background(), addedUser.ID)
+		require.NoError(t, err)
+		require.Equal(t, addedUser, foundUser)
 	})
 }
 
 func TestUserGetList(t *testing.T) {
+	su := NewUserStorage()
+	for i := 0; i < 10; i++ {
+		userToAdd := models.User{
+			Name:        faker.Name(),
+			Phonenumber: faker.Phonenumber(),
+		}
+
+		_, err := su.Add(context.Background(), userToAdd)
+		require.NoError(t, err)
+	}
+
 	testCases := []struct {
 		name          string
 		names         []string
@@ -159,8 +165,8 @@ func TestUserGetList(t *testing.T) {
 		{
 			name:          "get users by names",
 			names:         []string{su.users[1].Name, su.users[2].Name},
-			from:          time.Now().AddDate(-2, 0, 0),
-			to:            time.Now().AddDate(-2, 0, 0),
+			from:          time.Time{},
+			to:            time.Time{},
 			limit:         10,
 			offset:        0,
 			orderBy:       "asc",
@@ -170,11 +176,13 @@ func TestUserGetList(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			filter := UserFilter{
 				Offset:         tc.offset,
 				Limit:          tc.limit,
-				FromCreatedAt:  tc.from,
-				ToCreatedAt:    tc.to,
+				FromCreatedAt:  &tc.from,
+				ToCreatedAt:    &tc.to,
 				Name:           tc.names,
 				TopPostsAmount: tc.orderBy,
 			}
@@ -188,11 +196,23 @@ func TestUserGetList(t *testing.T) {
 
 func TestUserDelete(t *testing.T) {
 	t.Parallel()
-	userID := 1
-	user := su.users[userID]
-	require.NotNil(t, user)
+	su := NewUserStorage()
 
-	err := su.Delete(context.Background(), userID)
+	userToAdd := models.User{
+		Name:        faker.Name(),
+		Phonenumber: faker.Phonenumber(),
+	}
+
+	addedUser, err := su.Add(context.Background(), userToAdd)
 	require.NoError(t, err)
-	require.Equal(t, 9, len(su.users))
+
+	user, err := su.FindById(context.Background(), addedUser.ID)
+	require.NoError(t, err)
+	require.Equal(t, addedUser.ID, user.ID)
+
+	err = su.Delete(context.Background(), user.ID)
+	require.NoError(t, err)
+
+	user, err = su.FindById(context.Background(), addedUser.ID)
+	require.ErrorIs(t, err, custom_errors.ErrUserNotFound)
 }

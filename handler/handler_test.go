@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/go-faker/faker/v4"
 	"github.com/trad3r/hskills/apirest/models"
 	"github.com/trad3r/hskills/apirest/router"
 	"github.com/trad3r/hskills/apirest/storage"
@@ -34,8 +35,8 @@ func TestRouting_AddUser(t *testing.T) {
 
 	user := models.User{
 		ID:          0,
-		Name:        "faker.NAME",
-		Phonenumber: "faker.Phonenumber()",
+		Name:        faker.Name(),
+		Phonenumber: faker.Phonenumber(),
 	}
 
 	body, err := json.Marshal(user)

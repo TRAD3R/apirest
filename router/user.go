@@ -31,7 +31,7 @@ func (r *Router) UserList(req *http.Request) ([]models.User, error) {
 	return r.userStorage.GetList(ctx, filter)
 }
 
-func (r *Router) UserAdd(req *http.Request) error {
+func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
@@ -41,13 +41,13 @@ func (r *Router) UserAdd(req *http.Request) error {
 		reqBody, err := io.ReadAll(req.Body)
 		if err != nil {
 			log.Printf("Failed to read body: %v", err)
-			return errors.New("Failed to read body")
+			return nil, errors.New("Failed to read body")
 		}
 
 		err = json.Unmarshal(reqBody, &userAddReq)
 		if err != nil {
 			log.Printf("Failed to unmarshal body: %v", err)
-			return errors.New("Failed to unmarshal body")
+			return nil, errors.New("Failed to unmarshal body")
 		}
 	}
 

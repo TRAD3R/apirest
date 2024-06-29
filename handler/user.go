@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -32,11 +33,27 @@ func (h *Handler) getUsers() func(http.ResponseWriter, *http.Request) {
 
 func (h *Handler) addUser() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := h.router.UserAdd(r)
+		user, err := h.router.UserAdd(r)
 		if err != nil {
+			log.Printf("failed to add user: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
+			if _, err = w.Write([]byte(fmt.Sprintf("failed to add user"))); err != nil {
+				log.Printf("failed to write body: %v\n", err)
+			}
 		} else {
-			w.WriteHeader(http.StatusCreated)
+			userJson, err := json.Marshal(user)
+			if err != nil {
+				log.Printf("failed to marshal user: %v\n", err)
+				w.WriteHeader(http.StatusBadRequest)
+				if _, err := w.Write([]byte(fmt.Sprintf("something went wrong"))); err != nil {
+					log.Printf("failed to write body: %v\n", err)
+				}
+			} else {
+				w.WriteHeader(http.StatusOK)
+				if _, err := w.Write(userJson); err != nil {
+					log.Printf("failed to write body: %v\n", err)
+				}
+			}
 		}
 	}
 }
