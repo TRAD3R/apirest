@@ -1,13 +1,13 @@
 ###User list
-GET http://localhost:8080/users?from=2024-06-01&to=2024-07-01&sort=asc
+GET http://localhost:8080/users
 
 ###User create
 POST http://localhost:8080/user
 Content-Type: application/json
 
 {
-  "name": "user1",
-  "phonenumber": "+79999999999"
+  "name": "user2",
+  "phonenumber": "+79999999998"
 }
 
 ### user Update
@@ -28,9 +28,9 @@ POST localhost:8080/post
 Content-Type: application/json
 
 {
-  "subject": "post1",
+  "subject": "post2",
   "body": "post description",
-  "author": 1
+  "author": 2
 }
 ### post Update
 PATCH http://localhost:8080/post/1

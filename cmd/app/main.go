@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/trad3r/hskills/apirest/handler"
-	"github.com/trad3r/hskills/apirest/router"
-	"github.com/trad3r/hskills/apirest/storage"
+	"github.com/trad3r/hskills/apirest/internal/handler"
+	"github.com/trad3r/hskills/apirest/internal/router"
+	"github.com/trad3r/hskills/apirest/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 )
@@ -53,6 +54,8 @@ func main() {
 	// docker stop app -> SIGTERM (SIGINT) -> 10s timeout -> SIGKILL
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelFunc()
+
+	runtime.SetMutexProfileFraction(1)
 
 	us := storage.NewUserStorage()
 	ps := storage.NewPostStorage()
