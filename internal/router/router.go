@@ -8,14 +8,12 @@ import (
 )
 
 type Router struct {
-	userStorage *storage.UserStorage
-	postStorage *storage.PostStorage
+	db *storage.Storage
 }
 
-func NewRouter(us *storage.UserStorage, ps *storage.PostStorage) *Router {
+func NewRouter(db *storage.Storage) *Router {
 	return &Router{
-		userStorage: us,
-		postStorage: ps,
+		db: db,
 	}
 }
 

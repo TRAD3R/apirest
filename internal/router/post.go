@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/trad3r/hskills/apirest/internal/models"
-	"github.com/trad3r/hskills/apirest/internal/storage"
+	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 	"io"
 	"log"
 	"net/http"
@@ -24,14 +24,14 @@ func (r *Router) PostList(req *http.Request) ([]models.Post, error) {
 		return nil, err
 	}
 
-	return r.postStorage.GetList(ctx, filter)
+	return r.db.Post.GetList(ctx, filter)
 }
 
 func (r *Router) PostAdd(req *http.Request) error {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
-	var postAddReq storage.PostAddRequest
+	var postAddReq filters.PostAddRequest
 
 	if req.Body != nil {
 		reqBody, err := io.ReadAll(req.Body)
@@ -60,25 +60,20 @@ func (r *Router) PostAdd(req *http.Request) error {
 		Body:    postAddReq.Body,
 	}
 
-	author, err := r.userStorage.FindById(ctx, postAddReq.Author)
+	author, err := r.db.User.FindById(ctx, postAddReq.Author)
 	if err != nil {
-		log.Printf("failed to get user: %v", err)
+		log.Printf("failed to get author: %v", err)
 		return errors.New("failed to check author")
 	}
 
 	if author == nil {
-		log.Printf("Failed to find user with id %d", postAddReq.Author)
+		log.Printf("Failed to find author with id %d", postAddReq.Author)
 		return errors.New("author does not exist")
 	}
 
-	post.Author = author.ID
+	post.Author = *author
 
-	if err := r.postStorage.Add(ctx, &post); err != nil {
-		log.Printf("failed to add post: %v", err)
-		return errors.New("failed to add post")
-	}
-
-	return r.userStorage.IncrPostToUser(post.Author)
+	return r.db.Post.Add(ctx, &post)
 }
 
 func (r *Router) PostUpdate(req *http.Request) error {
@@ -90,7 +85,7 @@ func (r *Router) PostUpdate(req *http.Request) error {
 		return err
 	}
 
-	var postUpdateReq storage.PostUpdateRequest
+	var postUpdateReq filters.PostUpdateRequest
 
 	if req.Body != nil {
 		reqBody, err := io.ReadAll(req.Body)
@@ -106,7 +101,7 @@ func (r *Router) PostUpdate(req *http.Request) error {
 		}
 	}
 
-	return r.postStorage.Update(ctx, id, postUpdateReq)
+	return r.db.Post.Update(ctx, id, postUpdateReq)
 }
 
 func (r *Router) PostDelete(req *http.Request) error {
@@ -118,16 +113,11 @@ func (r *Router) PostDelete(req *http.Request) error {
 		return err
 	}
 
-	if err := r.userStorage.DecrPostToUser(id); err != nil {
-		log.Printf("failed to delete post: %v", err)
-		return errors.New("failed to delete post")
-	}
-
-	return r.postStorage.Delete(ctx, id)
+	return r.db.Post.Delete(ctx, id)
 }
 
-func parsePostFilters(query url.Values) (storage.PostFilter, error) {
-	var filter storage.PostFilter
+func parsePostFilters(query url.Values) (filters.PostFilter, error) {
+	var filter filters.PostFilter
 	var err error
 
 	from := query.Get("from")

@@ -30,7 +30,7 @@ Content-Type: application/json
 {
   "subject": "post2",
   "body": "post description",
-  "author": 2
+  "author": 1
 }
 ### post Update
 PATCH http://localhost:8080/post/1

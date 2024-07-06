@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/trad3r/hskills/apirest/internal/config"
 	"github.com/trad3r/hskills/apirest/internal/handler"
 	"github.com/trad3r/hskills/apirest/internal/router"
 	"github.com/trad3r/hskills/apirest/internal/storage"
@@ -49,18 +50,20 @@ DELETE /user/:id - удаление пользователя
 Методы для /posts оставляю на твою фантазию))
 */
 func main() {
-	// Graceful shutdown
-	// TODO: обработку контекста завершения программы
-	// docker stop app -> SIGTERM (SIGINT) -> 10s timeout -> SIGKILL
+	cfg := config.GetConfig()
+
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelFunc()
 
 	runtime.SetMutexProfileFraction(1)
 
-	us := storage.NewUserStorage()
-	ps := storage.NewPostStorage()
+	db, err := storage.NewDB(ctx, cfg.DB.Url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer storage.Stop()
 
-	r := router.NewRouter(us, ps)
+	r := router.NewRouter(db)
 	h := handler.NewHandler(r)
 
 	log.Printf("Listening on port 8080")

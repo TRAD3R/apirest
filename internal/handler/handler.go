@@ -18,21 +18,21 @@ func NewHandler(router *router.Router) *Handler {
 
 func (h *Handler) Handlers() http.Handler {
 	r := http.NewServeMux()
-	r.HandleFunc("GET /users", h.getUsers())
+	r.HandleFunc("GET /users", h.getUsers)
 
-	r.HandleFunc("POST /user", h.addUser())
+	r.HandleFunc("POST /user", h.addUser)
 
 	r.HandleFunc("PATCH /user/{id}", h.UpdateUser) // так проще
 
-	r.HandleFunc("DELETE /user/{id}", h.deleteUser())
+	r.HandleFunc("DELETE /user/{id}", h.deleteUser)
 
-	r.HandleFunc("GET /posts", h.getPosts())
+	r.HandleFunc("GET /posts", h.getPosts)
 
-	r.HandleFunc("POST /post", h.addPost())
+	r.HandleFunc("POST /post", h.addPost)
 
-	r.HandleFunc("PATCH /post/{id}", h.updatePost())
+	r.HandleFunc("PATCH /post/{id}", h.updatePost)
 
-	r.HandleFunc("DELETE /post/{id}", h.deletePost())
+	r.HandleFunc("DELETE /post/{id}", h.deletePost)
 
 	r.HandleFunc("/debug/pprof/", pprof.Index)
 	r.HandleFunc("debug/pprof/cmdline", pprof.Cmdline)

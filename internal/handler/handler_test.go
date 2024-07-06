@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/go-faker/faker/v4"
 	"github.com/trad3r/hskills/apirest/internal/models"
-	"github.com/trad3r/hskills/apirest/internal/router"
-	"github.com/trad3r/hskills/apirest/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,17 +14,13 @@ import (
 )
 
 var (
-	s *storage.UserStorage
-	p *storage.PostStorage
-	r *router.Router
 	h *Handler
 )
 
 func TestMain(m *testing.M) {
-	s = storage.NewUserStorage()
-	p = storage.NewPostStorage()
-	r = router.NewRouter(s, p)
-	h = NewHandler(r)
+	//s := storage.NewDB()
+	//r = router.NewRouter(s, p)
+	//h = NewHandler(r)
 }
 
 func TestRouting_AddUser(t *testing.T) {

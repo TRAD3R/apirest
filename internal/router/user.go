@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/trad3r/hskills/apirest/internal/models"
-	"github.com/trad3r/hskills/apirest/internal/storage"
+	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 	"io"
 	"log"
 	"net/http"
@@ -20,7 +20,7 @@ var (
 )
 
 func (r *Router) UserList(req *http.Request) ([]models.User, error) {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	filter, err := parseUserFilters(req.URL.Query())
@@ -28,14 +28,14 @@ func (r *Router) UserList(req *http.Request) ([]models.User, error) {
 		return nil, err
 	}
 
-	return r.userStorage.GetList(ctx, filter)
+	return r.db.User.GetList(ctx, filter)
 }
 
 func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var userAddReq storage.UserAddRequest
+	var userAddReq filters.UserAddRequest
 
 	if req.Body != nil {
 		reqBody, err := io.ReadAll(req.Body)
@@ -51,16 +51,21 @@ func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
 		}
 	}
 
-	user := models.User{
+	user := &models.User{
 		Name:        userAddReq.Name,
 		Phonenumber: userAddReq.Phonenumber,
 	}
 
-	return r.userStorage.Add(ctx, user)
+	err := r.db.User.Add(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (r *Router) UserUpdate(req *http.Request) error {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	id, err := getIdFromPath(req.URL.Path)
@@ -68,7 +73,7 @@ func (r *Router) UserUpdate(req *http.Request) error {
 		return err
 	}
 
-	var userUpdateReq storage.UserUpdateRequest
+	var userUpdateReq filters.UserUpdateRequest
 
 	if req.Body != nil {
 		reqBody, err := io.ReadAll(req.Body)
@@ -84,11 +89,11 @@ func (r *Router) UserUpdate(req *http.Request) error {
 		}
 	}
 
-	return r.userStorage.Update(ctx, id, userUpdateReq)
+	return r.db.User.Update(ctx, id, userUpdateReq)
 }
 
 func (r *Router) UserDelete(req *http.Request) error {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	id, err := getIdFromPath(req.URL.Path)
@@ -96,11 +101,11 @@ func (r *Router) UserDelete(req *http.Request) error {
 		return err
 	}
 
-	return r.userStorage.Delete(ctx, id)
+	return r.db.User.Delete(ctx, id)
 }
 
-func parseUserFilters(query url.Values) (storage.UserFilter, error) {
-	var filter storage.UserFilter
+func parseUserFilters(query url.Values) (filters.UserFilter, error) {
+	var filter filters.UserFilter
 
 	from := query.Get("from")
 	if len(from) > 0 {
@@ -138,7 +143,7 @@ func parseUserFilters(query url.Values) (storage.UserFilter, error) {
 			return filter, errors.New("invalid format for offset")
 		}
 
-		filter.Offset = filterOffset
+		filter.Offset = uint(filterOffset)
 	}
 
 	limit := query.Get("limit")
@@ -149,9 +154,9 @@ func parseUserFilters(query url.Values) (storage.UserFilter, error) {
 			return filter, errors.New("invalid format for limit")
 		}
 
-		filter.Limit = filterLimit
+		filter.Limit = uint(filterLimit)
 	} else {
-		filter.Limit = defaultLimit
+		filter.Limit = uint(defaultLimit)
 	}
 
 	sort := query.Get("sort")
