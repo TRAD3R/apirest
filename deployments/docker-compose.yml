@@ -12,6 +12,8 @@ services:
       - DATABASE_URL=postgres://user:password@db:5432/dbname?sslmode=disable
     ports:
       - "8080:8080" # или любой другой порт, который использует ваше приложение
+    networks:
+      - network
 
   db:
     image: postgres:16-alpine
@@ -24,7 +26,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "54321:5432"
+    networks:
+      - network
     # healthcheck. pg_isready
 
 volumes:
   postgres_data:
+
+networks:
+  network:
+    driver: bridge
