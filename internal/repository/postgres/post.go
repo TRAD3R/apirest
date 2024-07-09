@@ -3,12 +3,14 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
-	"time"
 )
 
 type PostRepository struct {

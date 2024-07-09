@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
-	"time"
 )
 
 type UserRepository struct {
@@ -134,7 +136,7 @@ func (s UserRepository) Update(ctx context.Context, id int, userReq filters.User
 		updates["updated_at"] = time.Now()
 	}
 
-	ds.Set(updates)
+	ds = ds.Set(updates)
 
 	sql, args, err := ds.ToSQL()
 	if err != nil {
