@@ -107,6 +107,18 @@ func (s PostRepository) GetList(ctx context.Context, filter filters.PostFilter) 
 	return posts, errs
 }
 
+// Example of buildUpdatemap
+//func buildUpdateMap(postReq filters.PostUpdateRequest) (m map[string]any, err error) {
+//	// make map
+//	if len(postReq.Body) > 0 {
+//		m =
+//	}
+//
+//	if len(m) == 0 {
+//		// return err
+//	}
+//}
+
 // Update updates user's name or phone
 func (s PostRepository) Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
