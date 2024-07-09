@@ -125,7 +125,7 @@ func (s PostRepository) Update(ctx context.Context, id int, postReq filters.Post
 	}
 
 	if len(sets) > 0 {
-		ds.Set(sets)
+		ds = ds.Set(sets)
 	}
 
 	sql, args, err := ds.ToSQL()
