@@ -6,7 +6,8 @@ services:
     container_name: go_app
     platform: linux/amd64
     depends_on:
-      - db
+      - db:
+            condition: service_healthy
     environment:
       - DATABASE_URL=postgres://user:password@db:5432/dbname?sslmode=disable
     ports:
@@ -23,6 +24,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "54321:5432"
+    # healthcheck. pg_isready
 
 volumes:
   postgres_data:
