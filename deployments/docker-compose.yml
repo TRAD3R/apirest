@@ -10,6 +10,8 @@ services:
             condition: service_healthy
     environment:
       - DATABASE_URL=postgres://user:password@db:5432/dbname?sslmode=disable
+    volumes:
+      - "${PWD}/app/config.yml:/root/config.yml"
     ports:
       - "8080:8080" # или любой другой порт, который использует ваше приложение
     networks:
