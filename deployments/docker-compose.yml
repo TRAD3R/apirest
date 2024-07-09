@@ -4,6 +4,7 @@ services:
       context: ..
       dockerfile: ./deployments/app/Dockerfile
     container_name: go_app
+    platform: linux/amd64
     depends_on:
       - db
     environment:
