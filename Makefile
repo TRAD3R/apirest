@@ -12,3 +12,7 @@ build: lint
 PHONY: run
 run:
 	go run cmd/app/main.go
+
+PHONY: docker-run
+docker-run:
+	docker compose -f ./deploy/docker-compose.yml up -d

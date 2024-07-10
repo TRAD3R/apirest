@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: ../.
+      dockerfile: deploy/Dockerfile
+    container_name: apirest
+    image: apirest:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - main_network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: apirest_pg
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: apirest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    ports:
+      - "54321:5432"
+    networks:
+      - main_network
+
+volumes:
+  postgres_data:
+
+networks:
+  main_network:
+    driver: bridge
