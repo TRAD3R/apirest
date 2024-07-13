@@ -1,0 +1,2 @@
+DROP TABLE author CASCADE;
+DROP SEQUENCE author_id_seq;
