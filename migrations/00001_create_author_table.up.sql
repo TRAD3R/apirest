@@ -1,4 +1,3 @@
--- Up
 CREATE SEQUENCE author_id_seq INCREMENT BY 1 MINVALUE 1 START 1;
 CREATE TABLE author
 (
@@ -19,9 +18,3 @@ CREATE TABLE post
     author_id      INTEGER,
     CONSTRAINT fk_author FOREIGN KEY (author_id) REFERENCES author(id) ON DELETE CASCADE
 );
-
--- Down
-DROP TABLE post;
-DROP SEQUENCE post_id_seq;
-DROP TABLE author;
-DROP SEQUENCE author_id_seq;
