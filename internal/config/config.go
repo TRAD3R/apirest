@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	DB struct {
+	IsDebug bool `yaml:"is_debug" env-default:"false"`
+	DB      struct {
 		Url string `yaml:"url" required:"true"`
 	} `yaml:"db"`
 }

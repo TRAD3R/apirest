@@ -1,0 +1,29 @@
+- id: 1
+  subject: "post 1"
+  body: "body for post 1"
+  created_at: RAW=NOW()
+  author_id: 1
+
+- id: 2
+  subject: "post 2"
+  body: "body for post 2"
+  created_at: RAW=NOW()
+  author_id: 1
+
+- id: 3
+  subject: "post 3"
+  body: "body for post 3"
+  created_at: RAW=NOW()
+  author_id: 2
+
+- id: 4
+  subject: "post 4"
+  body: "body for post 4"
+  created_at: RAW=NOW()
+  author_id: 3
+
+- id: 5
+  subject: "post 5"
+  body: "body for post 5"
+  created_at: RAW=NOW()
+  author_id: 4

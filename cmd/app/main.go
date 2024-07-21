@@ -3,17 +3,19 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/trad3r/hskills/apirest/internal/config"
-	"github.com/trad3r/hskills/apirest/internal/handler"
-	"github.com/trad3r/hskills/apirest/internal/router"
-	"github.com/trad3r/hskills/apirest/internal/storage"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/TRAD3R/tlog"
+	"github.com/trad3r/hskills/apirest/internal/config"
+	"github.com/trad3r/hskills/apirest/internal/handler"
+	"github.com/trad3r/hskills/apirest/internal/migrator"
+	"github.com/trad3r/hskills/apirest/internal/router"
+	"github.com/trad3r/hskills/apirest/internal/storage"
 )
 
 /*
@@ -52,6 +54,8 @@ DELETE /user/:id - удаление пользователя
 func main() {
 	cfg := config.GetConfig()
 
+	logger := tlog.GetLogger(cfg.IsDebug)
+
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelFunc()
 
@@ -59,14 +63,20 @@ func main() {
 
 	db, err := storage.NewDB(ctx, cfg.DB.Url)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 	defer storage.Stop()
 
-	r := router.NewRouter(db)
+	if err := migrator.ApplyPostgresMigrations("migrations", cfg.DB.Url); err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	r := router.NewRouter(logger, db)
 	h := handler.NewHandler(r)
 
-	log.Printf("Listening on port 8080")
+	logger.Info("listening on port 8080")
 
 	// Review:
 	s := http.Server{
@@ -81,13 +91,14 @@ func main() {
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal(err)
+			logger.Error(err.Error())
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
 
 	if err := s.Close(); err != nil {
-		log.Printf("Error closing server: %v\n", err)
+		logger.Error("error closing server", "err", err.Error())
 	}
 }

@@ -20,19 +20,26 @@ var (
 )
 
 func (r *Router) UserList(req *http.Request) ([]models.User, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
 	filter, err := parseUserFilters(req.URL.Query())
 	if err != nil {
-		return nil, err
+		r.logger.Error(err.Error())
+		return nil, errors.New("invalid request params")
 	}
 
-	return r.db.User.GetList(ctx, filter)
+	users, err := r.db.User.GetList(ctx, filter)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return nil, errors.New("users not found")
+	}
+
+	return users, nil
 }
 
 func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
 	var userAddReq filters.UserAddRequest
@@ -64,14 +71,9 @@ func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
 	return user, nil
 }
 
-func (r *Router) UserUpdate(req *http.Request) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func (r *Router) UserUpdate(userId int, req *http.Request) error {
+	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
-
-	id, err := getIdFromPath(req.URL.Path)
-	if err != nil {
-		return err
-	}
 
 	var userUpdateReq filters.UserUpdateRequest
 
@@ -89,19 +91,14 @@ func (r *Router) UserUpdate(req *http.Request) error {
 		}
 	}
 
-	return r.db.User.Update(ctx, id, userUpdateReq)
+	return r.db.User.Update(ctx, userId, userUpdateReq)
 }
 
-func (r *Router) UserDelete(req *http.Request) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func (r *Router) UserDelete(userId int, req *http.Request) error {
+	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
-	id, err := getIdFromPath(req.URL.Path)
-	if err != nil {
-		return err
-	}
-
-	return r.db.User.Delete(ctx, id)
+	return r.db.User.Delete(ctx, userId)
 }
 
 func parseUserFilters(query url.Values) (filters.UserFilter, error) {

@@ -1,44 +1,39 @@
 package handler
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/trad3r/hskills/apirest/internal/router"
 	"net/http"
-	"net/http/pprof"
 )
 
 type Handler struct {
 	router *router.Router
 }
 
-func NewHandler(router *router.Router) *Handler {
+func NewHandler(r *router.Router) *Handler {
 	return &Handler{
-		router: router,
+		router: r,
 	}
 }
 
 func (h *Handler) Handlers() http.Handler {
-	r := http.NewServeMux()
-	r.HandleFunc("GET /users", h.getUsers)
+	r := gin.Default()
 
-	r.HandleFunc("POST /user", h.addUser)
+	r.GET("/users", h.getUsers)
+	r.POST("/user", h.addUser)
+	r.PATCH("/user/:id", h.UpdateUser) // так проще
+	r.DELETE("/user/:id", h.deleteUser)
 
-	r.HandleFunc("PATCH /user/{id}", h.UpdateUser) // так проще
+	r.GET("/posts", h.getPosts)
+	r.POST("/post", h.addPost)
+	r.PATCH("/post/:id", h.updatePost)
+	r.DELETE("/post/:id", h.deletePost)
 
-	r.HandleFunc("DELETE /user/{id}", h.deleteUser)
-
-	r.HandleFunc("GET /posts", h.getPosts)
-
-	r.HandleFunc("POST /post", h.addPost)
-
-	r.HandleFunc("PATCH /post/{id}", h.updatePost)
-
-	r.HandleFunc("DELETE /post/{id}", h.deletePost)
-
-	r.HandleFunc("/debug/pprof/", pprof.Index)
-	r.HandleFunc("debug/pprof/cmdline", pprof.Cmdline)
-	r.HandleFunc("debug/pprof/profile", pprof.Profile)
-	r.HandleFunc("debug/pprof/symbol", pprof.Symbol)
-	r.HandleFunc("debug/pprof/trace", pprof.Trace)
+	//r.HandleFunc("/debug/pprof/", pprof.Index)
+	//r.HandleFunc("debug/pprof/cmdline", pprof.Cmdline)
+	//r.HandleFunc("debug/pprof/profile", pprof.Profile)
+	//r.HandleFunc("debug/pprof/symbol", pprof.Symbol)
+	//r.HandleFunc("debug/pprof/trace", pprof.Trace)
 
 	return r
 }

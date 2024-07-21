@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/trad3r/hskills/apirest/internal/custom_errors"
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
-	"time"
 )
 
 type UserRepository struct {
@@ -54,7 +57,7 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 	defer cancel()
 
 	var errs error
-	var users []models.User
+	users := make([]models.User, 0, filter.Limit)
 	var wheres []goqu.Expression
 
 	postCountSubquery := goqu.From(goqu.T("post").As("p")).Select(goqu.COUNT("id")).Where(goqu.I("p.author_id").Eq(goqu.I("a.id")))
@@ -78,7 +81,7 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 		ds = ds.Where(wheres...)
 	}
 
-	ds.
+	ds = ds.
 		Offset(filter.Offset).
 		Limit(filter.Limit)
 
@@ -110,6 +113,10 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 		users = append(users, user)
 	}
 
+	if err := rows.Err(); err != nil {
+		errs = multierror.Append(errs, err)
+	}
+
 	return users, errs
 }
 
@@ -117,9 +124,11 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 func (s UserRepository) Update(ctx context.Context, id int, userReq filters.UserUpdateRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
+	var userId int
 
 	ds := goqu.Update("author").
-		Where(goqu.Ex{"id": id})
+		Where(goqu.Ex{"id": id}).
+		Returning("id")
 
 	updates := make(map[string]interface{}, 3)
 	if len(userReq.Name) > 0 {
@@ -134,16 +143,22 @@ func (s UserRepository) Update(ctx context.Context, id int, userReq filters.User
 		updates["updated_at"] = time.Now()
 	}
 
-	ds.Set(updates)
+	if len(updates) > 0 {
+		ds = ds.Set(updates)
+	}
 
 	sql, args, err := ds.ToSQL()
 	if err != nil {
 		return fmt.Errorf("error while preparing update user: %w", err)
 	}
 
-	_, err = s.db.Exec(ctx, sql, args...)
+	err = s.db.QueryRow(ctx, sql, args...).Scan(&userId)
 	if err != nil {
 		return fmt.Errorf("error while updating user: %w", err)
+	}
+
+	if userId == 0 {
+		return custom_errors.ErrUserNotFound
 	}
 
 	return nil
@@ -154,17 +169,18 @@ func (s UserRepository) Delete(ctx context.Context, id int) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	ds := goqu.Delete("author").Where(goqu.Ex{"id": id})
+	ds := goqu.Delete("author").Where(goqu.Ex{"id": id}).Returning("id")
 	sql, args, err := ds.ToSQL()
 	if err != nil {
 		return fmt.Errorf("error while preparing delete user: %w", err)
 	}
 
-	_, err = s.db.Exec(ctx, sql, args...)
+	err = s.db.QueryRow(ctx, sql, args...).Scan(&id)
 	if err != nil {
 		return fmt.Errorf("error while deleting user: %w", err)
 	}
 
+	log.Println(id)
 	return nil
 }
 
@@ -185,6 +201,10 @@ func (s UserRepository) FindById(ctx context.Context, id int) (*models.User, err
 	var user models.User
 
 	if err := s.db.QueryRow(ctx, sql, args...).Scan(&user.ID, &user.Name, &user.Phonenumber, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("error while find user by ID %d: %w", id, err)
 	}
 

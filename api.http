@@ -11,7 +11,7 @@ Content-Type: application/json
 }
 
 ### user Update
-PATCH http://localhost:8080/user/1
+PATCH http://localhost:8080/user/2
 Content-Type: application/json
 
 {
@@ -28,7 +28,7 @@ POST localhost:8080/post
 Content-Type: application/json
 
 {
-  "subject": "post2",
+  "subject": "post3",
   "body": "post description",
   "author": 1
 }

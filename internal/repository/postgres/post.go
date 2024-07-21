@@ -2,13 +2,16 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/hashicorp/go-multierror"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
-	"time"
 )
 
 type PostRepository struct {
@@ -30,14 +33,15 @@ func (s PostRepository) Add(ctx context.Context, post *models.Post) error {
 		Cols("subject", "body", "author_id").
 		Vals(
 			goqu.Vals{post.Subject, post.Body, post.Author.ID},
-		)
+		).
+		Returning("id")
 
 	sql, args, err := ds.ToSQL()
 	if err != nil {
 		return fmt.Errorf("error while creating sql: %w", err)
 	}
 
-	_, err = s.db.Exec(ctx, sql, args...)
+	err = s.db.QueryRow(ctx, sql, args...).Scan(&post.ID)
 	if err != nil {
 		return fmt.Errorf("error while inserting post: %w", err)
 	}
@@ -54,27 +58,27 @@ func (s PostRepository) GetList(ctx context.Context, filter filters.PostFilter) 
 	var posts []models.Post
 	var wheres []goqu.Expression
 
-	ds := goqu.From(goqu.T("author").As("a")).
+	ds := goqu.From(goqu.T("post").As("p")).
 		Select("p.id", "p.subject", "p.body", "p.created_at", "p.updated_at", "a.id", "a.name", "a.phonenumber", "a.created_at", "a.updated_at").
-		Join(goqu.T("post").As("p"), goqu.On(goqu.Ex{"a.id": goqu.I("p.author_id")}))
+		Join(goqu.T("author").As("a"), goqu.On(goqu.Ex{"a.id": goqu.I("p.author_id")}))
 
 	if !filter.FromCreatedAt.IsZero() {
-		wheres = append(wheres, goqu.C("p.created_at").Gte(filter.FromCreatedAt))
+		wheres = append(wheres, goqu.T("p").Col("created_at").Gte(filter.FromCreatedAt))
 	}
 
 	if !filter.ToCreatedAt.IsZero() {
-		wheres = append(wheres, goqu.C("p.created_at").Lte(filter.ToCreatedAt))
+		wheres = append(wheres, goqu.T("p").Col("created_at").Lte(filter.ToCreatedAt))
 	}
 
 	if len(filter.Authors) > 0 {
-		wheres = append(wheres, goqu.C("p.author_id").In(filter.Authors))
+		wheres = append(wheres, goqu.T("p").Col("author_id").In(filter.Authors))
 	}
 
 	if len(wheres) > 0 {
-		ds = ds.Where(wheres...)
+		ds = ds.Where(goqu.And(wheres...))
 	}
 
-	ds.
+	ds = ds.
 		Offset(uint(filter.Offset)).
 		Limit(uint(filter.Limit))
 
@@ -115,17 +119,18 @@ func (s PostRepository) Update(ctx context.Context, id int, postReq filters.Post
 	ds := goqu.Update("post").
 		Where(goqu.Ex{"id": id})
 
-	var sets []goqu.Record
+	updates := make(map[string]interface{}, 3)
 	if len(postReq.Subject) > 0 {
-		sets = append(sets, goqu.Record{"subject": postReq.Subject})
+		updates["subject"] = postReq.Subject
 	}
 
 	if len(postReq.Body) > 0 {
-		sets = append(sets, goqu.Record{"body": postReq.Body})
+		updates["body"] = postReq.Body
 	}
 
-	if len(sets) > 0 {
-		ds.Set(sets)
+	if len(updates) > 0 {
+		updates["updated_at"] = time.Now()
+		ds = ds.Set(updates)
 	}
 
 	sql, args, err := ds.ToSQL()
@@ -166,7 +171,7 @@ func (s PostRepository) FindById(ctx context.Context, id int) (*models.Post, err
 	defer cancel()
 
 	ds := goqu.From(goqu.T("post").As("p")).
-		Select("p.id", "p.subject", "p.body", "a.id", "a.name", "a.phonenumber", "a.created_at").
+		Select("p.id", "p.subject", "p.body", "p.created_at", "p.updated_at", "a.id", "a.name", "a.phonenumber", "a.created_at", "a.updated_at").
 		Join(goqu.T("author").As("a"), goqu.On(goqu.Ex{"a.id": goqu.I("p.author_id")})).
 		Where(goqu.Ex{"p.id": id})
 
@@ -179,7 +184,11 @@ func (s PostRepository) FindById(ctx context.Context, id int) (*models.Post, err
 	var post models.Post
 
 	if err := s.db.QueryRow(ctx, sql, args...).
-		Scan(&post.ID, &post.Subject, &post.Body, &author.ID, &author.Name, &author.Phonenumber, &author.CreatedAt, &author.UpdatedAt); err != nil {
+		Scan(&post.ID, &post.Subject, &post.Body, &post.CreatedAt, &post.UpdatedAt, &author.ID, &author.Name, &author.Phonenumber, &author.CreatedAt, &author.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, fmt.Errorf("error while find post by ID %d: %w", id, err)
 	}
 

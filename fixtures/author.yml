@@ -1,0 +1,24 @@
+- id: 1
+  name: John
+  phonenumber: +79912345678
+  created_at: RAW=NOW()
+
+- id: 2
+  name: Smith
+  phonenumber: +79923456789
+  created_at: RAW=NOW()
+
+- id: 3
+  name: Adam
+  phonenumber: +79934567890
+  created_at: RAW=NOW()
+
+- id: 4
+  name: Evan
+  phonenumber: +79945678901
+  created_at: RAW=NOW()
+
+- id: 5
+  name: Mike
+  phonenumber: +79956789012
+  created_at: RAW=NOW()

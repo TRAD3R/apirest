@@ -1,67 +1,54 @@
 package handler
 
 import (
-	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 )
 
-func (h *Handler) getPosts(w http.ResponseWriter, r *http.Request) {
-	users, err := h.router.PostList(r)
+func (h *Handler) getPosts(c *gin.Context) {
+	users, err := h.router.PostList(c.Request)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.Writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	body, err := json.Marshal(users)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
-			log.Println(err)
-		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(body)
-	if err != nil {
-		log.Printf("failed to write body: %v\n", err)
-	}
+	c.Writer.WriteHeader(http.StatusOK)
+	c.JSON(http.StatusOK, users)
 }
 
-func (h *Handler) addPost(w http.ResponseWriter, r *http.Request) {
-	err := h.router.PostAdd(r)
+func (h *Handler) addPost(c *gin.Context) {
+	err := h.router.PostAdd(c.Request)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
+		c.Writer.WriteHeader(http.StatusBadRequest)
+		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {
 			log.Println(err)
 		}
 	} else {
-		w.WriteHeader(http.StatusCreated)
+		c.Writer.WriteHeader(http.StatusCreated)
 	}
 }
 
-func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
-	err := h.router.PostUpdate(r)
+func (h *Handler) updatePost(c *gin.Context) {
+	err := h.router.PostUpdate(c.Request)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
+		c.Writer.WriteHeader(http.StatusBadRequest)
+		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {
 			log.Println(err)
 		}
 	} else {
-		w.WriteHeader(http.StatusOK)
+		c.Writer.WriteHeader(http.StatusOK)
 	}
 }
 
-func (h *Handler) deletePost(w http.ResponseWriter, r *http.Request) {
-	err := h.router.PostDelete(r)
+func (h *Handler) deletePost(c *gin.Context) {
+	err := h.router.PostDelete(c.Request)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
+		c.Writer.WriteHeader(http.StatusBadRequest)
+		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {
 			log.Println(err)
 		}
 	} else {
-		w.WriteHeader(http.StatusOK)
+		c.Writer.WriteHeader(http.StatusOK)
 	}
 }

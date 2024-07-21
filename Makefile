@@ -14,5 +14,13 @@ run:
 	go run cmd/app/main.go
 
 PHONY: docker-up
-docker-up:
+docker-up: lint
 	docker compose -f ./deployments/docker-compose.yml up --build
+
+PHONY: tests
+tests:
+	go test -coverprofile=coverage.out ./...
+
+PHONY: cover
+cover:
+	go tool cover -html=coverage.out

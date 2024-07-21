@@ -2,18 +2,21 @@ package router
 
 import (
 	"errors"
+	"github.com/TRAD3R/tlog"
 	"github.com/trad3r/hskills/apirest/internal/storage"
 	"strconv"
 	"strings"
 )
 
 type Router struct {
-	db *storage.Storage
+	db     *storage.Storage
+	logger *tlog.Logger
 }
 
-func NewRouter(db *storage.Storage) *Router {
+func NewRouter(logger *tlog.Logger, db *storage.Storage) *Router {
 	return &Router{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
