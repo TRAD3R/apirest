@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) getPosts(c *gin.Context) {
-	users, err := h.router.PostList(c.Request)
+	users, err := h.postService.PostList(c.Request)
 	if err != nil {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		return
@@ -18,7 +19,7 @@ func (h *Handler) getPosts(c *gin.Context) {
 }
 
 func (h *Handler) addPost(c *gin.Context) {
-	err := h.router.PostAdd(c.Request)
+	err := h.userPostService.AddPost(c.Request)
 	if err != nil {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {
@@ -30,7 +31,7 @@ func (h *Handler) addPost(c *gin.Context) {
 }
 
 func (h *Handler) updatePost(c *gin.Context) {
-	err := h.router.PostUpdate(c.Request)
+	err := h.postService.PostUpdate(c.Request)
 	if err != nil {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {
@@ -42,7 +43,7 @@ func (h *Handler) updatePost(c *gin.Context) {
 }
 
 func (h *Handler) deletePost(c *gin.Context) {
-	err := h.router.PostDelete(c.Request)
+	err := h.postService.PostDelete(c.Request)
 	if err != nil {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		if _, err = c.Writer.Write([]byte(err.Error())); err != nil {

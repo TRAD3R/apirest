@@ -14,11 +14,19 @@ import (
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 )
 
+type IPostRepository interface {
+	Add(ctx context.Context, post *models.Post) error
+	GetList(ctx context.Context, filter filters.PostFilter) ([]models.Post, error)
+	Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error
+	Delete(ctx context.Context, id int) error
+	FindById(ctx context.Context, id int) (*models.Post, error)
+}
+
 type PostRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewPostRepository(db *pgxpool.Pool) *PostRepository {
+func NewPostRepository(db *pgxpool.Pool) IPostRepository {
 	return &PostRepository{
 		db: db,
 	}
@@ -49,7 +57,7 @@ func (s PostRepository) Add(ctx context.Context, post *models.Post) error {
 	return nil
 }
 
-// GetList returns user list
+// GetList returns post list
 func (s PostRepository) GetList(ctx context.Context, filter filters.PostFilter) ([]models.Post, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
@@ -111,7 +119,7 @@ func (s PostRepository) GetList(ctx context.Context, filter filters.PostFilter) 
 	return posts, errs
 }
 
-// Update updates user's name or phone
+// Update updates post data
 func (s PostRepository) Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
@@ -146,7 +154,7 @@ func (s PostRepository) Update(ctx context.Context, id int, postReq filters.Post
 	return nil
 }
 
-// Delete removes user by ID
+// Delete removes post by ID
 func (s PostRepository) Delete(ctx context.Context, id int) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()

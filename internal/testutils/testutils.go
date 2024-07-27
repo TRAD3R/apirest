@@ -10,13 +10,11 @@ import (
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/trad3r/hskills/apirest/internal/storage"
 	"github.com/trad3r/hskills/apirest/internal/testpostgres"
 )
 
-func PreparePostgres(t *testing.T) (pgDB *storage.Storage, connStr string) {
-	//TODO?
-	//skipShort(t)
+func PreparePostgres(t *testing.T) (connStr string) {
+	skipShort(t)
 	ctx := context.Background()
 
 	pgContainer, err := testpostgres.RunContainer(ctx,
@@ -38,10 +36,7 @@ func PreparePostgres(t *testing.T) (pgDB *storage.Storage, connStr string) {
 	connStr, err = pgContainer.ConnectionDsn(ctx, "sslmode=disable")
 	require.NoError(t, err)
 
-	pgDB, err = storage.NewDB(ctx, connStr)
-	require.NoError(t, err)
-
-	return pgDB, connStr
+	return connStr
 }
 
 func RunFixtures(fixturesPath string, dsn string) error {
@@ -68,4 +63,10 @@ func RunFixtures(fixturesPath string, dsn string) error {
 	}
 
 	return nil
+}
+
+func skipShort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 }

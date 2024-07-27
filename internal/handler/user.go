@@ -13,7 +13,7 @@ import (
 // frameworks: echo, gin
 
 func (h *Handler) getUsers(c *gin.Context) {
-	users, err := h.router.UserList(c.Request)
+	users, err := h.userService.UserList(c.Request)
 	if err != nil {
 		c.Writer.WriteHeader(http.StatusBadRequest)
 		if _, err := c.Writer.Write([]byte(err.Error())); err != nil {
@@ -27,7 +27,7 @@ func (h *Handler) getUsers(c *gin.Context) {
 }
 
 func (h *Handler) addUser(c *gin.Context) {
-	user, err := h.router.UserAdd(c.Request)
+	user, err := h.userService.UserAdd(c.Request)
 	if err != nil {
 		log.Printf("failed to add user: %v\n", err)
 		c.Writer.WriteHeader(http.StatusBadRequest)
@@ -53,7 +53,7 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.router.UserUpdate(id, c.Request); err != nil {
+	if err := h.userService.UserUpdate(id, c.Request); err != nil {
 		if errors.Is(err, custom_errors.ErrUserNotFound) {
 			c.Writer.WriteHeader(http.StatusNotFound)
 		} else {
@@ -76,7 +76,7 @@ func (h *Handler) deleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.router.UserDelete(id, c.Request); err != nil {
+	if err := h.userService.UserDelete(id, c.Request); err != nil {
 		if errors.Is(err, custom_errors.ErrUserNotFound) {
 			c.Writer.WriteHeader(http.StatusNotFound)
 		} else {

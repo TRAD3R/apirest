@@ -16,11 +16,19 @@ import (
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 )
 
+type IUserRepository interface {
+	Add(ctx context.Context, user *models.User) error
+	GetList(ctx context.Context, filter filters.UserFilter) ([]models.User, error)
+	Update(ctx context.Context, id int, userReq filters.UserUpdateRequest) error
+	Delete(ctx context.Context, id int) error
+	FindById(ctx context.Context, id int) (*models.User, error)
+}
+
 type UserRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewUserRepository(db *pgxpool.Pool) UserRepository {
+func NewUserRepository(db *pgxpool.Pool) IUserRepository {
 	return UserRepository{
 		db: db,
 	}

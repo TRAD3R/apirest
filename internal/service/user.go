@@ -1,11 +1,9 @@
-package router
+package service
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/trad3r/hskills/apirest/internal/models"
-	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 	"io"
 	"log"
 	"net/http"
@@ -13,32 +11,58 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/TRAD3R/tlog"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/trad3r/hskills/apirest/internal/models"
+	"github.com/trad3r/hskills/apirest/internal/repository/filters"
+	"github.com/trad3r/hskills/apirest/internal/repository/postgres"
 )
 
 var (
 	defaultLimit = 10
 )
 
-func (r *Router) UserList(req *http.Request) ([]models.User, error) {
+type IUserService interface {
+	UserList(req *http.Request) ([]models.User, error)
+	UserAdd(req *http.Request) (*models.User, error)
+	UserUpdate(userId int, req *http.Request) error
+	UserDelete(userId int, req *http.Request) error
+	FindByID(ctx context.Context, userId int) (*models.User, error)
+}
+
+type UserService struct {
+	repo   postgres.IUserRepository
+	logger *tlog.Logger
+}
+
+func NewUserService(logger *tlog.Logger, db *pgxpool.Pool) IUserService {
+	return &UserService{
+		repo:   postgres.NewUserRepository(db),
+		logger: logger,
+	}
+}
+
+func (s *UserService) UserList(req *http.Request) ([]models.User, error) {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
 	filter, err := parseUserFilters(req.URL.Query())
 	if err != nil {
-		r.logger.Error(err.Error())
+		s.logger.Error(err.Error())
 		return nil, errors.New("invalid request params")
 	}
 
-	users, err := r.db.User.GetList(ctx, filter)
+	users, err := s.repo.GetList(ctx, filter)
 	if err != nil {
-		r.logger.Error(err.Error())
+		s.logger.Error(err.Error())
 		return nil, errors.New("users not found")
 	}
 
 	return users, nil
 }
 
-func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
+func (s *UserService) UserAdd(req *http.Request) (*models.User, error) {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
@@ -63,7 +87,7 @@ func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
 		Phonenumber: userAddReq.Phonenumber,
 	}
 
-	err := r.db.User.Add(ctx, user)
+	err := s.repo.Add(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +95,7 @@ func (r *Router) UserAdd(req *http.Request) (*models.User, error) {
 	return user, nil
 }
 
-func (r *Router) UserUpdate(userId int, req *http.Request) error {
+func (s *UserService) UserUpdate(userId int, req *http.Request) error {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
@@ -91,14 +115,18 @@ func (r *Router) UserUpdate(userId int, req *http.Request) error {
 		}
 	}
 
-	return r.db.User.Update(ctx, userId, userUpdateReq)
+	return s.repo.Update(ctx, userId, userUpdateReq)
 }
 
-func (r *Router) UserDelete(userId int, req *http.Request) error {
+func (s *UserService) UserDelete(userId int, req *http.Request) error {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
-	return r.db.User.Delete(ctx, userId)
+	return s.repo.Delete(ctx, userId)
+}
+
+func (s *UserService) FindByID(ctx context.Context, userId int) (*models.User, error) {
+	return s.repo.FindById(ctx, userId)
 }
 
 func parseUserFilters(query url.Values) (filters.UserFilter, error) {

@@ -1,18 +1,23 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/trad3r/hskills/apirest/internal/router"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/trad3r/hskills/apirest/internal/service"
 )
 
 type Handler struct {
-	router *router.Router
+	userService     service.IUserService
+	postService     service.IPostService
+	userPostService service.IUserPostService
 }
 
-func NewHandler(r *router.Router) *Handler {
+func NewHandler(u service.IUserService, p service.IPostService, up service.IUserPostService) *Handler {
 	return &Handler{
-		router: r,
+		userService:     u,
+		postService:     p,
+		userPostService: up,
 	}
 }
 

@@ -14,43 +14,10 @@ import (
 	"github.com/trad3r/hskills/apirest/internal/config"
 	"github.com/trad3r/hskills/apirest/internal/handler"
 	"github.com/trad3r/hskills/apirest/internal/migrator"
-	"github.com/trad3r/hskills/apirest/internal/router"
+	"github.com/trad3r/hskills/apirest/internal/service"
 	"github.com/trad3r/hskills/apirest/internal/storage"
 )
 
-/*
-*
-Сделать:
-Реализовать сервис-блог, выполняющий хранение двух моделей данных: Пользователи, Посты.
-
-Пользователь:
-ID, Имя, Телефон, Время создания, Время последнего редактирования
-
-Посты:
-ID
-Subject
-Время создания
-ID пользователя, написавшего пост
-Содержание
-
-В качестве хранения использовать map. Предоставить интерфейс доступа к данным с помощью HTTP API, использовать net/http. Методы доступа к данным:
-
-GET /users
-Query:
-fromCreatedAt - фильтр на левую границу времени создания
-toCreatedAt - фильтр на правую границу времени создания
-name - множественный фильтр на имя пользователя
-limit - кол-во записей к выдаче
-offset - кол-во записей к пропуску
-topPostsAmount - при передачи в этом параметре asc/desc - данные в выборке отсортированы по кол-ву написанных пользователем постов
-
-POST /user - запрос на создание пользователя
-PATCH /user/:id - запрос на изменение пользователя позволяющий принять одно из двух полей (имя, телефон) или сразу два эти поля и выполнить изменение пользователя. При изменении пользователя обновляется также время последнего редактирования
-
-DELETE /user/:id - удаление пользователя
-
-Методы для /posts оставляю на твою фантазию))
-*/
 func main() {
 	cfg := config.GetConfig()
 
@@ -66,15 +33,17 @@ func main() {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
-	defer storage.Stop()
+	defer db.Close()
 
 	if err := migrator.ApplyPostgresMigrations("migrations", cfg.DB.Url); err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
-	r := router.NewRouter(logger, db)
-	h := handler.NewHandler(r)
+	u := service.NewUserService(logger, db)
+	p := service.NewPostService(logger, db)
+	up := service.NewUserPostService(u, p)
+	h := handler.NewHandler(u, p, up)
 
 	logger.Info("listening on port 8080")
 

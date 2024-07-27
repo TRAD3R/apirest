@@ -12,6 +12,7 @@ import (
 	"github.com/trad3r/hskills/apirest/internal/migrator"
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
+	"github.com/trad3r/hskills/apirest/internal/repository/postgres"
 	"github.com/trad3r/hskills/apirest/internal/storage"
 	"github.com/trad3r/hskills/apirest/internal/testutils"
 )
@@ -22,18 +23,18 @@ func TestUserAdd(t *testing.T) {
 	var err error
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
 	testUser := &models.User{
 		Name:        faker.Name(),
 		Phonenumber: faker.Phonenumber(),
 	}
 
-	err = pgStorage.User.Add(ctx, testUser)
+	err = pgRepo.Add(ctx, testUser)
 	require.NoError(t, err)
 	require.NotEmpty(t, testUser.ID)
 
-	dbUser, err := pgStorage.User.FindById(ctx, testUser.ID)
+	dbUser, err := pgRepo.FindById(ctx, testUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, testUser.Name, dbUser.Name)
 	assert.Equal(t, testUser.Phonenumber, dbUser.Phonenumber)
@@ -46,7 +47,7 @@ func TestUserGetList(t *testing.T) {
 
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
 	testCases := []struct {
 		name       string
@@ -91,7 +92,7 @@ func TestUserGetList(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			list, err := pgStorage.User.GetList(ctx, tc.filter)
+			list, err := pgRepo.GetList(ctx, tc.filter)
 			require.NoError(t, err)
 			assert.Equal(t, tc.count, len(list))
 			assert.Equal(t, tc.expectedId, list[0].ID)
@@ -104,20 +105,20 @@ func TestUserUpdateName(t *testing.T) {
 
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
-	user, err := pgStorage.User.FindById(ctx, 1)
+	user, err := pgRepo.FindById(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
 	user.Name = faker.Name()
 
-	err = pgStorage.User.Update(context.Background(), user.ID, filters.UserUpdateRequest{
+	err = pgRepo.Update(context.Background(), user.ID, filters.UserUpdateRequest{
 		Name: user.Name,
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgStorage.User.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindById(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Name, foundUser.Name)
 }
@@ -127,20 +128,20 @@ func TestUserUpdatePhone(t *testing.T) {
 
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
-	user, err := pgStorage.User.FindById(ctx, 1)
+	user, err := pgRepo.FindById(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
 	user.Phonenumber = faker.Phonenumber()
 
-	err = pgStorage.User.Update(context.Background(), user.ID, filters.UserUpdateRequest{
+	err = pgRepo.Update(context.Background(), user.ID, filters.UserUpdateRequest{
 		Phonenumber: user.Phonenumber,
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgStorage.User.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindById(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Phonenumber, foundUser.Phonenumber)
 }
@@ -150,22 +151,22 @@ func TestUserUpdateNameAndPhone(t *testing.T) {
 
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
-	user, err := pgStorage.User.FindById(ctx, 1)
+	user, err := pgRepo.FindById(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
 	user.Name = faker.Name()
 	user.Phonenumber = faker.Phonenumber()
 
-	err = pgStorage.User.Update(context.Background(), user.ID, filters.UserUpdateRequest{
+	err = pgRepo.Update(context.Background(), user.ID, filters.UserUpdateRequest{
 		Name:        user.Name,
 		Phonenumber: user.Phonenumber,
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgStorage.User.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindById(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Name, foundUser.Name)
 	require.Equal(t, user.Phonenumber, foundUser.Phonenumber)
@@ -176,35 +177,38 @@ func TestUserDelete(t *testing.T) {
 
 	ctx := context.Background()
 
-	pgStorage := setup(t)
+	pgRepo := getUserRepo(t)
 
-	user, err := pgStorage.User.FindById(ctx, 1)
+	user, err := pgRepo.FindById(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
-	err = pgStorage.User.Delete(context.Background(), user.ID)
+	err = pgRepo.Delete(context.Background(), user.ID)
 	require.NoError(t, err)
 
-	user, err = pgStorage.User.FindById(context.Background(), user.ID)
+	user, err = pgRepo.FindById(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Empty(t, user)
 }
 
-func setup(t *testing.T) *storage.Storage {
-	pgStorage, dsnStr := testutils.PreparePostgres(t)
-	err := migrator.ApplyPostgresMigrations("../../../migrations", dsnStr)
+func getUserRepo(t *testing.T) postgres.IUserRepository {
+	dsn := testutils.PreparePostgres(t)
+	err := migrator.ApplyPostgresMigrations("../../../migrations", dsn)
 	require.NoError(t, err)
 
-	err = testutils.RunFixtures("../../../fixtures", dsnStr)
+	err = testutils.RunFixtures("../../../fixtures", dsn)
 	require.NoError(t, err)
 
-	return pgStorage
+	db, err := storage.NewDB(context.Background(), dsn)
+	require.NoError(t, err)
+
+	return postgres.NewUserRepository(db)
 }
 
 //func BenchmarkUserAdd(b *testing.B) {
 //	ctx := context.Background()
 //
-//	pgStorage := setup(b)
+//	pgStorage := getUserRepo(b)
 //
 //	for i := 0; i < b.N; i++ {
 //		b.Run("add new user", func(b *testing.B) {

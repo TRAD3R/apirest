@@ -7,18 +7,9 @@ import (
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/trad3r/hskills/apirest/internal/domain"
-	"github.com/trad3r/hskills/apirest/internal/repository/postgres"
 )
 
-type Storage struct {
-	User domain.UserRepository
-	Post domain.PostRepository
-}
-
-var conn *pgxpool.Pool
-
-func NewDB(ctx context.Context, dsn string) (*Storage, error) {
+func NewDB(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		log.Fatalf("Unable to parse config: %v", err)
@@ -35,9 +26,5 @@ func NewDB(ctx context.Context, dsn string) (*Storage, error) {
 		return nil, fmt.Errorf("could not ping database: %w", err)
 	}
 
-	return &Storage{User: postgres.NewUserRepository(conn), Post: postgres.NewPostRepository(conn)}, nil
-}
-
-func Stop() {
-	conn.Close()
+	return conn, nil
 }

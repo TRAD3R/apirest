@@ -1,11 +1,9 @@
-package router
+package service
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/trad3r/hskills/apirest/internal/models"
-	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 	"io"
 	"log"
 	"net/http"
@@ -13,9 +11,34 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/TRAD3R/tlog"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/trad3r/hskills/apirest/internal/models"
+	"github.com/trad3r/hskills/apirest/internal/repository/filters"
+	"github.com/trad3r/hskills/apirest/internal/repository/postgres"
 )
 
-func (r *Router) PostList(req *http.Request) ([]models.Post, error) {
+type IPostService interface {
+	PostList(req *http.Request) ([]models.Post, error)
+	PostAdd(ctx context.Context, subject string, body string, author models.User) error
+	PostUpdate(req *http.Request) error
+	PostDelete(req *http.Request) error
+}
+
+type PostService struct {
+	repo   postgres.IPostRepository
+	logger *tlog.Logger
+}
+
+func NewPostService(logger *tlog.Logger, db *pgxpool.Pool) IPostService {
+	return &PostService{
+		repo:   postgres.NewPostRepository(db),
+		logger: logger,
+	}
+}
+
+func (r *PostService) PostList(req *http.Request) ([]models.Post, error) {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
@@ -24,59 +47,20 @@ func (r *Router) PostList(req *http.Request) ([]models.Post, error) {
 		return nil, err
 	}
 
-	return r.db.Post.GetList(ctx, filter)
+	return r.repo.GetList(ctx, filter)
 }
 
-func (r *Router) PostAdd(req *http.Request) error {
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
-	defer cancel()
-
-	var postAddReq filters.PostAddRequest
-
-	if req.Body != nil {
-		reqBody, err := io.ReadAll(req.Body)
-		if err != nil {
-			log.Printf("Failed to read body: %v", err)
-			return errors.New("Failed to read body")
-		}
-
-		err = json.Unmarshal(reqBody, &postAddReq)
-		if err != nil {
-			log.Printf("Failed to unmarshal body: %v", err)
-			return errors.New("Failed to unmarshal body")
-		}
-	}
-
-	if len(postAddReq.Subject) == 0 {
-		return errors.New("subject field is required")
-	}
-
-	if postAddReq.Author < 1 {
-		return errors.New("author field is required")
-	}
-
+func (r *PostService) PostAdd(ctx context.Context, subject string, body string, author models.User) error {
 	post := models.Post{
-		Subject: postAddReq.Subject,
-		Body:    postAddReq.Body,
+		Subject: subject,
+		Body:    body,
+		Author:  author,
 	}
 
-	author, err := r.db.User.FindById(ctx, postAddReq.Author)
-	if err != nil {
-		log.Printf("failed to get author: %v", err)
-		return errors.New("failed to check author")
-	}
-
-	if author == nil {
-		log.Printf("Failed to find author with id %d", postAddReq.Author)
-		return errors.New("author does not exist")
-	}
-
-	post.Author = *author
-
-	return r.db.Post.Add(ctx, &post)
+	return r.repo.Add(ctx, &post)
 }
 
-func (r *Router) PostUpdate(req *http.Request) error {
+func (r *PostService) PostUpdate(req *http.Request) error {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
@@ -101,10 +85,10 @@ func (r *Router) PostUpdate(req *http.Request) error {
 		}
 	}
 
-	return r.db.Post.Update(ctx, id, postUpdateReq)
+	return r.repo.Update(ctx, id, postUpdateReq)
 }
 
-func (r *Router) PostDelete(req *http.Request) error {
+func (r *PostService) PostDelete(req *http.Request) error {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
@@ -113,7 +97,7 @@ func (r *Router) PostDelete(req *http.Request) error {
 		return err
 	}
 
-	return r.db.Post.Delete(ctx, id)
+	return r.repo.Delete(ctx, id)
 }
 
 func parsePostFilters(query url.Values) (filters.PostFilter, error) {
