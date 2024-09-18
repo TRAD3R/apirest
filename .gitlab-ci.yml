@@ -1,0 +1,37 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "uptrace"
+      when: always
+
+image golang:latest
+
+stages:
+  - generate
+  - test
+  - build
+
+vendor:
+  stage: generate
+  before_script:
+    - go mod tidy
+  script:
+    - go mod vendor
+  artifacts:
+    paths:
+      - vendor
+    expire_in: 10 minutes
+
+lint:
+  stage: test
+  script:
+    - echo "lint job"
+
+test:
+  stage: test
+  script:
+    - echo "test job"
+
+build:
+  stage: build
+  script:
+    - echo "build job"
