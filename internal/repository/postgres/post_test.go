@@ -21,7 +21,7 @@ import (
 //
 //	pgStorage := getPostRepo(t)
 //
-//	testUser, err := pgStorage.User.FindById(ctx, 1)
+//	testUser, err := pgStorage.User.FindByID(ctx, 1)
 //	require.NoError(t, err)
 //
 //	post := &models.Post{
@@ -34,7 +34,7 @@ import (
 //	require.NoError(t, err)
 //	require.NotEmpty(t, post.ID)
 //
-//	dbPost, err := pgRepo.FindById(ctx, post.ID)
+//	dbPost, err := pgRepo.FindByID(ctx, post.ID)
 //	require.NoError(t, err)
 //	assert.Equal(t, post.Subject, dbPost.Subject)
 //	assert.Equal(t, post.Body, dbPost.Body)
@@ -51,7 +51,7 @@ func TestPostUpdate(t *testing.T) {
 	pgRepo := getPostRepo(t)
 
 	postID := 1
-	post, err := pgRepo.FindById(ctx, postID)
+	post, err := pgRepo.FindByID(ctx, postID)
 	require.NoError(t, err)
 	require.NotNil(t, post)
 
@@ -63,7 +63,7 @@ func TestPostUpdate(t *testing.T) {
 	err = pgRepo.Update(ctx, postID, req)
 	require.NoError(t, err)
 
-	newPost, err := pgRepo.FindById(ctx, postID)
+	newPost, err := pgRepo.FindByID(ctx, postID)
 	require.NoError(t, err)
 	require.Equal(t, req.Subject, newPost.Subject)
 	require.Equal(t, req.Body, newPost.Body)
@@ -127,13 +127,13 @@ func TestPostDelete(t *testing.T) {
 
 	pgRepo := getPostRepo(t)
 
-	post, err := pgRepo.FindById(ctx, 1)
+	post, err := pgRepo.FindByID(ctx, 1)
 	require.NoError(t, err)
 
 	err = pgRepo.Delete(ctx, post.ID)
 	require.NoError(t, err)
 
-	post, err = pgRepo.FindById(ctx, post.ID)
+	post, err = pgRepo.FindByID(ctx, post.ID)
 	require.NoError(t, err)
 	require.Nil(t, post)
 }

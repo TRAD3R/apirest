@@ -10,12 +10,15 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
 	"github.com/TRAD3R/tlog"
 	"github.com/trad3r/hskills/apirest/internal/config"
 	"github.com/trad3r/hskills/apirest/internal/handler"
 	"github.com/trad3r/hskills/apirest/internal/migrator"
 	"github.com/trad3r/hskills/apirest/internal/service"
 	"github.com/trad3r/hskills/apirest/internal/storage"
+	"github.com/uptrace/uptrace-go/uptrace"
 )
 
 func main() {
@@ -28,14 +31,29 @@ func main() {
 
 	runtime.SetMutexProfileFraction(1)
 
-	db, err := storage.NewDB(ctx, cfg.DB.Url)
+	// Configure OpenTelemetry with sensible defaults.
+	uptrace.ConfigureOpentelemetry(
+		// copy your project DSN here or use UPTRACE_DSN env var
+		uptrace.WithDSN("http://project1_secret_token@uptrace:14318?grpc=14317"),
+
+		uptrace.WithServiceName("myservice"),
+		uptrace.WithServiceVersion("1.0.0"),
+	)
+	// Send buffered spans and free resources.
+	defer func() {
+		if err := uptrace.Shutdown(ctx); err != nil {
+			logger.Error("failed to shutdown uptrace", "error", err)
+		}
+	}()
+
+	db, err := storage.NewDB(ctx, cfg.DB.URL)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer db.Close()
 
-	if err := migrator.ApplyPostgresMigrations("migrations", cfg.DB.Url); err != nil {
+	if err := migrator.ApplyPostgresMigrations("migrations", cfg.DB.URL); err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}

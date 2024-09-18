@@ -8,6 +8,7 @@ services:
     volumes:
       - ../config.yml:/app/config.yml
       - ../migrations:/app/migrations
+      - ../logs:/app/logs
     ports:
       - "8080:8080"
     networks:
@@ -25,8 +26,6 @@ services:
       POSTGRES_DB: apirest
     volumes:
       - apirest_data:/var/lib/postgresql/data
-    ports:
-      - "54321:5432"
     networks:
       - main_network
     healthcheck:
@@ -36,8 +35,62 @@ services:
       retries: 3
       start_period: 30s
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.7
+    restart: on-failure
+    environment:
+      CLICKHOUSE_DB: uptrace
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    volumes:
+      - ch_data2:/var/lib/clickhouse
+    networks:
+      - main_network
+
+  postgres:
+    image: postgres:16-alpine
+    restart: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: uptrace
+      POSTGRES_PASSWORD: uptrace
+      POSTGRES_DB: uptrace
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U uptrace -d uptrace']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    volumes:
+      - 'pg_data3:/var/lib/postgresql/data/pgdata'
+    networks:
+      - main_network
+
+  uptrace:
+    image: 'uptrace/uptrace:1.7.2'
+    #image: 'uptrace/uptrace-dev:latest'
+    restart: on-failure
+    volumes:
+      - ./uptrace.yml:/etc/uptrace/uptrace.yml
+    #environment:
+    #  - DEBUG=2
+    depends_on:
+      - clickhouse
+      - postgres
+    environment:
+      UPTRACE_DSN: "http://uptrace:uptrace@localhost:14317/uptrace"
+    ports:
+      - '14317:14317'
+      - '14318:14318'
+    networks:
+      - main_network
+
 volumes:
   apirest_data:
+  pg_data3:
+  ch_data2:
 
 networks:
   main_network:

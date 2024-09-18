@@ -17,6 +17,7 @@ import (
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
 	"github.com/trad3r/hskills/apirest/internal/repository/postgres"
+	"go.opentelemetry.io/otel"
 )
 
 var (
@@ -24,11 +25,11 @@ var (
 )
 
 type IUserService interface {
-	UserList(req *http.Request) ([]models.User, error)
+	UserList(ctx context.Context, req *http.Request) ([]models.User, error)
 	UserAdd(req *http.Request) (*models.User, error)
-	UserUpdate(userId int, req *http.Request) error
-	UserDelete(userId int, req *http.Request) error
-	FindByID(ctx context.Context, userId int) (*models.User, error)
+	UserUpdate(userID int, req *http.Request) error
+	UserDelete(userID int, req *http.Request) error
+	FindByID(ctx context.Context, userID int) (*models.User, error)
 }
 
 type UserService struct {
@@ -43,15 +44,16 @@ func NewUserService(logger *tlog.Logger, db *pgxpool.Pool) IUserService {
 	}
 }
 
-func (s *UserService) UserList(req *http.Request) ([]models.User, error) {
-	ctx, cancel := context.WithCancel(req.Context())
-	defer cancel()
+func (s *UserService) UserList(ctx context.Context, req *http.Request) ([]models.User, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "userlist")
+	defer span.End()
 
 	filter, err := parseUserFilters(req.URL.Query())
 	if err != nil {
 		s.logger.Error(err.Error())
 		return nil, errors.New("invalid request params")
 	}
+	span.AddEvent("filter")
 
 	users, err := s.repo.GetList(ctx, filter)
 	if err != nil {
@@ -95,7 +97,7 @@ func (s *UserService) UserAdd(req *http.Request) (*models.User, error) {
 	return user, nil
 }
 
-func (s *UserService) UserUpdate(userId int, req *http.Request) error {
+func (s *UserService) UserUpdate(userID int, req *http.Request) error {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
@@ -115,18 +117,18 @@ func (s *UserService) UserUpdate(userId int, req *http.Request) error {
 		}
 	}
 
-	return s.repo.Update(ctx, userId, userUpdateReq)
+	return s.repo.Update(ctx, userID, userUpdateReq)
 }
 
-func (s *UserService) UserDelete(userId int, req *http.Request) error {
+func (s *UserService) UserDelete(userID int, req *http.Request) error {
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel()
 
-	return s.repo.Delete(ctx, userId)
+	return s.repo.Delete(ctx, userID)
 }
 
-func (s *UserService) FindByID(ctx context.Context, userId int) (*models.User, error) {
-	return s.repo.FindById(ctx, userId)
+func (s *UserService) FindByID(ctx context.Context, userID int) (*models.User, error) {
+	return s.repo.FindByID(ctx, userID)
 }
 
 func parseUserFilters(query url.Values) (filters.UserFilter, error) {

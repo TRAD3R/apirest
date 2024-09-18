@@ -69,16 +69,16 @@ func (up *UserPostService) AddPost(req *http.Request) error {
 	return up.p.PostAdd(ctx, postAddReq.Subject, postAddReq.Body, *author)
 }
 
-func getIdFromPath(path string) (int, error) {
+func getIDFromPath(path string) (int, error) {
 	pathParts := strings.Split(path, "/")
 	if len(pathParts) != 3 {
 		return 0, errors.New("Invalid path")
 	}
 
-	id, err := strconv.Atoi(pathParts[2])
+	ID, err := strconv.Atoi(pathParts[2])
 	if err != nil {
 		return 0, errors.New("Invalid id")
 	}
 
-	return id, nil
+	return ID, nil
 }

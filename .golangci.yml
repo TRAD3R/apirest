@@ -1,0 +1,14 @@
+linters-settings:
+  govet:
+    disable: ["lostcancel"]
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - revive
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - goconst
+    - gocyclo

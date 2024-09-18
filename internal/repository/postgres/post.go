@@ -17,9 +17,9 @@ import (
 type IPostRepository interface {
 	Add(ctx context.Context, post *models.Post) error
 	GetList(ctx context.Context, filter filters.PostFilter) ([]models.Post, error)
-	Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error
-	Delete(ctx context.Context, id int) error
-	FindById(ctx context.Context, id int) (*models.Post, error)
+	Update(ctx context.Context, ID int, postReq filters.PostUpdateRequest) error
+	Delete(ctx context.Context, ID int) error
+	FindByID(ctx context.Context, ID int) (*models.Post, error)
 }
 
 type PostRepository struct {
@@ -120,12 +120,12 @@ func (s PostRepository) GetList(ctx context.Context, filter filters.PostFilter) 
 }
 
 // Update updates post data
-func (s PostRepository) Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error {
+func (s PostRepository) Update(ctx context.Context, ID int, postReq filters.PostUpdateRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
 	ds := goqu.Update("post").
-		Where(goqu.Ex{"id": id})
+		Where(goqu.Ex{"id": ID})
 
 	updates := make(map[string]interface{}, 3)
 	if len(postReq.Subject) > 0 {
@@ -155,11 +155,11 @@ func (s PostRepository) Update(ctx context.Context, id int, postReq filters.Post
 }
 
 // Delete removes post by ID
-func (s PostRepository) Delete(ctx context.Context, id int) error {
+func (s PostRepository) Delete(ctx context.Context, ID int) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	ds := goqu.Delete("post").Where(goqu.Ex{"id": id})
+	ds := goqu.Delete("post").Where(goqu.Ex{"id": ID})
 	sql, args, err := ds.ToSQL()
 	if err != nil {
 		return fmt.Errorf("error while preparing delete post: %w", err)
@@ -174,18 +174,18 @@ func (s PostRepository) Delete(ctx context.Context, id int) error {
 }
 
 // FindById returns post by ID
-func (s PostRepository) FindById(ctx context.Context, id int) (*models.Post, error) {
+func (s PostRepository) FindByID(ctx context.Context, ID int) (*models.Post, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
 	ds := goqu.From(goqu.T("post").As("p")).
 		Select("p.id", "p.subject", "p.body", "p.created_at", "p.updated_at", "a.id", "a.name", "a.phonenumber", "a.created_at", "a.updated_at").
 		Join(goqu.T("author").As("a"), goqu.On(goqu.Ex{"a.id": goqu.I("p.author_id")})).
-		Where(goqu.Ex{"p.id": id})
+		Where(goqu.Ex{"p.id": ID})
 
 	sql, args, err := ds.ToSQL()
 	if err != nil {
-		return nil, fmt.Errorf("error while preparing find post by ID %d: %w", id, err)
+		return nil, fmt.Errorf("error while preparing find post by ID %d: %w", ID, err)
 	}
 
 	var author models.User
@@ -197,7 +197,7 @@ func (s PostRepository) FindById(ctx context.Context, id int) (*models.Post, err
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("error while find post by ID %d: %w", id, err)
+		return nil, fmt.Errorf("error while find post by ID %d: %w", ID, err)
 	}
 
 	post.Author = author

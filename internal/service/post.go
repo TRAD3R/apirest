@@ -64,7 +64,7 @@ func (r *PostService) PostUpdate(req *http.Request) error {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
-	id, err := getIdFromPath(req.URL.Path)
+	id, err := getIDFromPath(req.URL.Path)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (r *PostService) PostDelete(req *http.Request) error {
 	ctx, cancel := context.WithTimeout(req.Context(), time.Second*10)
 	defer cancel()
 
-	id, err := getIdFromPath(req.URL.Path)
+	id, err := getIDFromPath(req.URL.Path)
 	if err != nil {
 		return err
 	}
@@ -124,8 +124,8 @@ func parsePostFilters(query url.Values) (filters.PostFilter, error) {
 
 	authors := query.Get("author")
 	if len(authors) > 0 {
-		for _, authorId := range strings.Split(authors, ",") {
-			author, err := strconv.Atoi(authorId)
+		for _, authorID := range strings.Split(authors, ",") {
+			author, err := strconv.Atoi(authorID)
 			if err != nil {
 				log.Printf("failed to parse author: %v", err)
 				continue

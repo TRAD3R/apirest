@@ -11,7 +11,7 @@ type UserRepository interface {
 	Add(ctx context.Context, user *models.User) error
 	Update(ctx context.Context, id int, userReq filters.UserUpdateRequest) error
 	Delete(ctx context.Context, id int) error
-	FindById(ctx context.Context, id int) (*models.User, error)
+	FindByID(ctx context.Context, id int) (*models.User, error)
 }
 
 type PostRepository interface {
@@ -19,5 +19,5 @@ type PostRepository interface {
 	Add(ctx context.Context, post *models.Post) error
 	Update(ctx context.Context, id int, postReq filters.PostUpdateRequest) error
 	Delete(ctx context.Context, id int) error
-	FindById(ctx context.Context, id int) (*models.Post, error)
+	FindByID(ctx context.Context, id int) (*models.Post, error)
 }

@@ -17,12 +17,6 @@ var (
 	h *Handler
 )
 
-func TestMain(m *testing.M) {
-	//s := storage.NewDB()
-	//r = router.NewRouter(s, p)
-	//h = NewHandler(r)
-}
-
 func TestRouting_AddUser(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(h.Handlers())

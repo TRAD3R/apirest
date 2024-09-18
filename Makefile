@@ -15,7 +15,7 @@ run:
 
 PHONY: docker-up
 docker-up: lint
-	docker compose -f ./deployments/docker-compose.yml up --build
+	docker compose -f ./deployments/docker-compose.yml up --build -d --remove-orphans
 
 PHONY: tests
 tests:

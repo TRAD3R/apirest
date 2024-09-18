@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/trad3r/hskills/apirest/internal/customerrors"
 	"log"
 	"time"
 
@@ -11,9 +12,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/trad3r/hskills/apirest/internal/custom_errors"
 	"github.com/trad3r/hskills/apirest/internal/models"
 	"github.com/trad3r/hskills/apirest/internal/repository/filters"
+	"go.opentelemetry.io/otel"
 )
 
 type IUserRepository interface {
@@ -21,7 +22,7 @@ type IUserRepository interface {
 	GetList(ctx context.Context, filter filters.UserFilter) ([]models.User, error)
 	Update(ctx context.Context, id int, userReq filters.UserUpdateRequest) error
 	Delete(ctx context.Context, id int) error
-	FindById(ctx context.Context, id int) (*models.User, error)
+	FindByID(ctx context.Context, id int) (*models.User, error)
 }
 
 type UserRepository struct {
@@ -61,6 +62,9 @@ func (s UserRepository) Add(ctx context.Context, user *models.User) error {
 
 // GetList returns user list
 func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) ([]models.User, error) {
+	ctx, span := otel.Tracer("").Start(ctx, "getUserList")
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
@@ -105,7 +109,7 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 	}
 
 	rows, err := s.db.Query(ctx, sql, args...)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil {
 		return nil, fmt.Errorf("error while querying users: %w", err)
 	}
 	defer rows.Close()
@@ -129,13 +133,13 @@ func (s UserRepository) GetList(ctx context.Context, filter filters.UserFilter) 
 }
 
 // Update updates user's name or phone
-func (s UserRepository) Update(ctx context.Context, id int, userReq filters.UserUpdateRequest) error {
+func (s UserRepository) Update(ctx context.Context, ID int, userReq filters.UserUpdateRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	var userId int
+	var userID int
 
 	ds := goqu.Update("author").
-		Where(goqu.Ex{"id": id}).
+		Where(goqu.Ex{"ID": ID}).
 		Returning("id")
 
 	updates := make(map[string]interface{}, 3)
@@ -160,50 +164,50 @@ func (s UserRepository) Update(ctx context.Context, id int, userReq filters.User
 		return fmt.Errorf("error while preparing update user: %w", err)
 	}
 
-	err = s.db.QueryRow(ctx, sql, args...).Scan(&userId)
+	err = s.db.QueryRow(ctx, sql, args...).Scan(&userID)
 	if err != nil {
 		return fmt.Errorf("error while updating user: %w", err)
 	}
 
-	if userId == 0 {
-		return custom_errors.ErrUserNotFound
+	if userID == 0 {
+		return customerrors.ErrUserNotFound
 	}
 
 	return nil
 }
 
 // Delete removes user by ID
-func (s UserRepository) Delete(ctx context.Context, id int) error {
+func (s UserRepository) Delete(ctx context.Context, ID int) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	ds := goqu.Delete("author").Where(goqu.Ex{"id": id}).Returning("id")
+	ds := goqu.Delete("author").Where(goqu.Ex{"id": ID}).Returning("id")
 	sql, args, err := ds.ToSQL()
 	if err != nil {
 		return fmt.Errorf("error while preparing delete user: %w", err)
 	}
 
-	err = s.db.QueryRow(ctx, sql, args...).Scan(&id)
+	err = s.db.QueryRow(ctx, sql, args...).Scan(&ID)
 	if err != nil {
 		return fmt.Errorf("error while deleting user: %w", err)
 	}
 
-	log.Println(id)
+	log.Println(ID)
 	return nil
 }
 
-// FindById returns user by ID
-func (s UserRepository) FindById(ctx context.Context, id int) (*models.User, error) {
+// FindByID returns user by ID
+func (s UserRepository) FindByID(ctx context.Context, ID int) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
 	ds := goqu.From("author").
 		Select("id", "name", "phonenumber", "created_at", "updated_at").
-		Where(goqu.Ex{"id": id})
+		Where(goqu.Ex{"id": ID})
 
 	sql, args, err := ds.ToSQL()
 	if err != nil {
-		return nil, fmt.Errorf("error while preparing find user by ID %d: %w", id, err)
+		return nil, fmt.Errorf("error while preparing find user by ID %d: %w", ID, err)
 	}
 
 	var user models.User
@@ -213,7 +217,7 @@ func (s UserRepository) FindById(ctx context.Context, id int) (*models.User, err
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("error while find user by ID %d: %w", id, err)
+		return nil, fmt.Errorf("error while find user by ID %d: %w", ID, err)
 	}
 
 	return &user, nil

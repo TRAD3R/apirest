@@ -34,7 +34,7 @@ func TestUserAdd(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, testUser.ID)
 
-	dbUser, err := pgRepo.FindById(ctx, testUser.ID)
+	dbUser, err := pgRepo.FindByID(ctx, testUser.ID)
 	require.NoError(t, err)
 	assert.Equal(t, testUser.Name, dbUser.Name)
 	assert.Equal(t, testUser.Phonenumber, dbUser.Phonenumber)
@@ -53,13 +53,13 @@ func TestUserGetList(t *testing.T) {
 		name       string
 		filter     filters.UserFilter
 		count      int
-		expectedId int
+		expectedID int
 	}{
 		{
 			name:       "All asc",
 			filter:     filters.UserFilter{},
 			count:      5,
-			expectedId: 5,
+			expectedID: 5,
 		},
 		{
 			name: "All desc",
@@ -67,7 +67,7 @@ func TestUserGetList(t *testing.T) {
 				TopPostsAmount: "desc",
 			},
 			count:      5,
-			expectedId: 1,
+			expectedID: 1,
 		},
 		{
 			name: "Limit 2",
@@ -75,7 +75,7 @@ func TestUserGetList(t *testing.T) {
 				Limit: 2,
 			},
 			count:      2,
-			expectedId: 5,
+			expectedID: 5,
 		},
 		{
 			name: "Offset 2",
@@ -84,7 +84,7 @@ func TestUserGetList(t *testing.T) {
 				Limit:  2,
 			},
 			count:      2,
-			expectedId: 3,
+			expectedID: 3,
 		},
 	}
 
@@ -95,7 +95,7 @@ func TestUserGetList(t *testing.T) {
 			list, err := pgRepo.GetList(ctx, tc.filter)
 			require.NoError(t, err)
 			assert.Equal(t, tc.count, len(list))
-			assert.Equal(t, tc.expectedId, list[0].ID)
+			assert.Equal(t, tc.expectedID, list[0].ID)
 		})
 	}
 }
@@ -107,7 +107,7 @@ func TestUserUpdateName(t *testing.T) {
 
 	pgRepo := getUserRepo(t)
 
-	user, err := pgRepo.FindById(ctx, 1)
+	user, err := pgRepo.FindByID(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
@@ -118,7 +118,7 @@ func TestUserUpdateName(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgRepo.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Name, foundUser.Name)
 }
@@ -130,7 +130,7 @@ func TestUserUpdatePhone(t *testing.T) {
 
 	pgRepo := getUserRepo(t)
 
-	user, err := pgRepo.FindById(ctx, 1)
+	user, err := pgRepo.FindByID(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
@@ -141,7 +141,7 @@ func TestUserUpdatePhone(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgRepo.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Phonenumber, foundUser.Phonenumber)
 }
@@ -153,7 +153,7 @@ func TestUserUpdateNameAndPhone(t *testing.T) {
 
 	pgRepo := getUserRepo(t)
 
-	user, err := pgRepo.FindById(ctx, 1)
+	user, err := pgRepo.FindByID(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
@@ -166,7 +166,7 @@ func TestUserUpdateNameAndPhone(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	foundUser, err := pgRepo.FindById(ctx, user.ID)
+	foundUser, err := pgRepo.FindByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, user.Name, foundUser.Name)
 	require.Equal(t, user.Phonenumber, foundUser.Phonenumber)
@@ -179,14 +179,14 @@ func TestUserDelete(t *testing.T) {
 
 	pgRepo := getUserRepo(t)
 
-	user, err := pgRepo.FindById(ctx, 1)
+	user, err := pgRepo.FindByID(ctx, 1)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
 	err = pgRepo.Delete(context.Background(), user.ID)
 	require.NoError(t, err)
 
-	user, err = pgRepo.FindById(context.Background(), user.ID)
+	user, err = pgRepo.FindByID(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Empty(t, user)
 }
